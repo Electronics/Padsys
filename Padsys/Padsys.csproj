@@ -51,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ColourExecButton.cs" />
+    <Compile Include="ColourExecRow.cs" />
     <Compile Include="LaunchpadMappings.cs" />
     <Compile Include="Padsys.cs">
       <SubType>Form</SubType>

@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 
 namespace Padsys {
     class ColourExecButton {
-        public static float lowlight_default = 0.5f;
+        public static float lowlight_default = 0.08f;
 
-        Color highlight;
-        Color lowlight;
+        public Color highlight;
+        public Color lowlight;
 
         public ColourExecButton() {
             highlight = new Color();

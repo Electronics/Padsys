@@ -17,26 +17,11 @@ namespace Padsys {
         private Button[] topButtons = new Button[8];
         Interface lInt = new Interface();
 
-        Random r = new Random();
-        Timer timer1;
-        public void initTimer() {
-            timer1 = new Timer();
-            timer1.Tick += new EventHandler(timer1_tick);
-            timer1.Interval = 100;
-            timer1.Start();
-        }
-        private void timer1_tick(object sender, EventArgs e) {
-            if (!lInt.isConnected()) return;
-            int rand = 0;
-            while(rand==0) rand = r.Next(0 , 15);
-            //Console.WriteLine(rand);
-            //lInt.setLED(r.Next(-1,8) , r.Next(0,9) , (0x10 * (rand%4)) + (rand >> 2)+0x0C);
-        }
+        public static int num_colourRows = 8;
 
         public Padsys() {
             InitializeComponent();
             initLaunchpad();
-            initTimer();
 
             for(int j=0;j<8;j++) {
                 for (int i=0;i<8;i++) {
@@ -67,28 +52,26 @@ namespace Padsys {
                 Console.WriteLine($"[Connect] Connecting to {tempDevices.First()._midiName}");
                 lInt.connect(tempDevices.First());
                 lInt.clearAllLEDs();
-                lInt.OnLaunchpadKeyPressed += new LaunchpadKeyEventHandler(testKeyEvent);
+                lInt.OnLaunchpadKeyPressed += new LaunchpadKeyEventHandler(midiKeyEvent);
                 return true;
             }
             return false;
         }
 
-        private void testKeyEvent(object sender, LaunchpadKeyEventArgs e) {
-            if (e.GetY() >= -1 && e.GetY() >= -1) {
-                Random r = new Random();
-                int red, grn, blu,h,s,v;
-                h = r.Next(0 , 360);
-                s = r.Next(50 , 400);s=s>100?100:s;
-                v = r.Next(0 , 600);v=v>100?100:v;
-                HsvToRgb( h,  s/100,  v/100, out red , out grn , out blu);
-                //Console.WriteLine($"Key: {e.GetX()} {e.GetY()}: {h} {s} {v} -> {red} {grn} {blu}");
-                lInt.setLED(e.GetX() , e.GetY() , Color.FromArgb(red , grn , blu));
-                
+        private void midiKeyEvent(object sender, LaunchpadKeyEventArgs e) {
+            if(e.GetY()<num_colourRows && e.GetY()>=0 && e.GetX()<8) {
+                // this is a coloured exec row, assuming row -1 and column 8 are not part of the selection
+                ColourExecRow.writeLowlightToRow(lInt , ColourExecRow.standard , e.GetY()); // write low_light to entire row
+                lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.standard[e.GetX()].highlight);
             }
         }
 
         private void Padsys_Load(object sender , EventArgs e) {
             generateButtons();
+            // presuming we have already connected...
+            for(int i=0;i<num_colourRows;i++) {  
+                ColourExecRow.writeLowlightToRow(lInt , ColourExecRow.standard , i);
+            }
         }
 
         private void onUIbuttonPress(object sender, System.EventArgs e) {
@@ -96,7 +79,7 @@ namespace Padsys {
             ColorDialog dialog = new ColorDialog();
             if(dialog.ShowDialog() == DialogResult.OK) {
                 //lInt.setLED(pos.Item2 , pos.Item1 , dialog.Color);
-                lInt.flashLED(pos.Item1 , pos.Item2 , dialog.Color);
+                lInt.pulseLED(pos.Item1 , pos.Item2 , dialog.Color);
                 Console.WriteLine($"Woah {pos.Item1} {pos.Item2} {dialog.Color.Name}");
             }
         }
