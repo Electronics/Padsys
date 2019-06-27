@@ -90,6 +90,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\eDMX\ArtNet\ArtNet.csproj">
+      <Project>{D059941C-C1CA-4A47-AA1D-B3AD9953AEB2}</Project>
+      <Name>ArtNet</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\launchpad-dot-net-master\launchpad-dot-net\launchpad-dot-net.csproj">
       <Project>{2784c4af-3b96-471b-91b0-1a11c342d375}</Project>
       <Name>launchpad-dot-net</Name>

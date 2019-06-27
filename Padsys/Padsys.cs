@@ -1,13 +1,8 @@
 ﻿using LaunchpadNET;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using static LaunchpadNET.Interface;
 
@@ -17,7 +12,11 @@ namespace Padsys {
         private Button[] topButtons = new Button[8];
         Interface lInt = new Interface();
 
-        public static int num_colourRows = 8;
+        private ArtNet.Engine ArtEngine = new ArtNet.Engine("Padsys", "");
+        static short universe = 15;
+        byte[] DMXData = new byte[256];
+
+        public static int num_colourRows = 6;
 
         public Padsys() {
             InitializeComponent();
@@ -28,11 +27,13 @@ namespace Padsys {
                     //lInt.setLED(j , i , j * 8 + i);
                 }
             }
+
+            //ArtEngine.RecievingDMX += new EventHandler(ourDmxReveivedEventFunction);
         }
 
         private void initLaunchpad() {
             if(findAndConnectToLaunchpad()) {
-                
+
             } else {
                 Timer connectTimer = new Timer();
                 connectTimer.Interval = 1000;
@@ -52,25 +53,59 @@ namespace Padsys {
                 Console.WriteLine($"[Connect] Connecting to {tempDevices.First()._midiName}");
                 lInt.connect(tempDevices.First());
                 lInt.clearAllLEDs();
-                lInt.OnLaunchpadKeyPressed += new LaunchpadKeyEventHandler(midiKeyEvent);
+                lInt.OnLaunchpadKeyPressed += new LaunchpadKeyEventHandler(keyPressedEvent);
+                lInt.OnLaunchpadKeyReleased += new LaunchpadKeyEventHandler(keyReleasedEvent);
                 return true;
             }
             return false;
         }
 
-        private void midiKeyEvent(object sender, LaunchpadKeyEventArgs e) {
-            if(e.GetY()<num_colourRows && e.GetY()>=0 && e.GetX()<8) {
-                // this is a coloured exec row, assuming row -1 and column 8 are not part of the selection
-                ColourExecRow.writeLowlightToRow(lInt , ColourExecRow.standard , e.GetY()); // write low_light to entire row
-                lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.standard[e.GetX()].highlight);
+        private void setDMX(int channel, byte value) {
+            DMXData[channel-1] = value;
+            ArtEngine.SendDMX(universe , DMXData , DMXData.Length);
+        }
+
+
+
+        private void keyPressedEvent(object sender , LaunchpadKeyEventArgs e) {
+            if (e.GetY() < num_colourRows && e.GetY() >= 0) {
+                if (e.GetX() < 8) {
+                    // this is a coloured exec row, assuming row -1 and column 8 are not part of the selection
+                    ColourExecRow.writeLowlightToRow(lInt , ColourExecRow.colours , e.GetY()); // write low_light to entire row
+
+                    for (int i = 0; i < 8; i++) {
+                        DMXData[e.GetY() * 9 + i] = 0;
+                    }
+                } else {
+                    // end group selection button
+                }
+                lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.colours[e.GetX()].highlight);
+            }
+
+            if (e.GetY() > -1) {
+                setDMX(e.GetY()*9 + e.GetX() + 1 , 255); // when pressed, send 255
+            }
+        }
+
+        private void keyReleasedEvent(object sender, LaunchpadKeyEventArgs e) {
+            if((e.GetY()>=num_colourRows || e.GetX()==8 ) && e.GetY()>=0) {
+                // if it's not a colour selection key, send dmx 0 when released
+                setDMX(e.GetY()*9 + e.GetX() + 1 , 0);
+            }
+            if(e.GetX()==8 && e.GetY()<num_colourRows) {
+                // group selection button
+                lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.colours[e.GetX()].lowlight);
             }
         }
 
         private void Padsys_Load(object sender , EventArgs e) {
+            ArtEngine.Start();
+           
+
             generateButtons();
             // presuming we have already connected...
             for(int i=0;i<num_colourRows;i++) {  
-                ColourExecRow.writeLowlightToRow(lInt , ColourExecRow.standard , i);
+                ColourExecRow.writeLowlightToRow(lInt , ColourExecRow.colours , i);
             }
         }
 
