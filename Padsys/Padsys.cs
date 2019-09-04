@@ -1,8 +1,11 @@
 ﻿using LaunchpadNET;
+using Rug.Osc;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using static LaunchpadNET.Interface;
 
@@ -12,14 +15,13 @@ namespace Padsys {
         private Button[] topButtons = new Button[8];
         Interface lInt = new Interface();
 
-        private ArtNet.Engine ArtEngine = new ArtNet.Engine("Padsys", "");
-        static short universe = 15;
-        byte[] DMXData = new byte[256];
+		private OscSender osc;
 
         public static int num_colourRows = 6;
 
         public Padsys() {
-            InitializeComponent();
+			InitializeComponent();
+			updateOSCAddress();
             initLaunchpad();
 
             for(int j=0;j<8;j++) {
@@ -60,47 +62,45 @@ namespace Padsys {
             return false;
         }
 
-        private void setDMX(int channel, byte value) {
-            DMXData[channel-1] = value;
-            ArtEngine.SendDMX(universe , DMXData , DMXData.Length);
-        }
-
-
-
         private void keyPressedEvent(object sender , LaunchpadKeyEventArgs e) {
             if (e.GetY() < num_colourRows && e.GetY() >= 0) {
                 if (e.GetX() < 8) {
                     // this is a coloured exec row, assuming row -1 and column 8 are not part of the selection
                     ColourExecRow.writeLowlightToRow(lInt , ColourExecRow.colours , e.GetY()); // write low_light to entire row
-
-                    for (int i = 0; i < 8; i++) {
-                        DMXData[e.GetY() * 9 + i] = 0;
-                    }
                 } else {
                     // end group selection button
                 }
-                lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.colours[e.GetX()].highlight);
-            }
 
-            if (e.GetY() > -1) {
-                setDMX(e.GetY()*9 + e.GetX() + 1 , 255); // when pressed, send 255
-            }
+				lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.colours[e.GetX()].highlight);
+            } else {
+				lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.colours[0].highlight); // white for non-colour rows
+			}
+
+			if(e.GetX()==8) {
+				osc.Send(new OscMessage($"/rpc" , "3H"));
+			}
+
+			int oscX = e.GetX() + 2;
+			if (oscX == 10) oscX = 1; // shift the end circle buttons to the front
+			int oscY = e.GetY() + 1;
+			
+			osc.Send(new OscMessage($"/exec/{textBox_execPage.Text}/{oscX + oscY * 9}", 1));
         }
 
         private void keyReleasedEvent(object sender, LaunchpadKeyEventArgs e) {
-            if((e.GetY()>=num_colourRows || e.GetX()==8 ) && e.GetY()>=0) {
-                // if it's not a colour selection key, send dmx 0 when released
-                setDMX(e.GetY()*9 + e.GetX() + 1 , 0);
-            }
-            if(e.GetX()==8 && e.GetY()<num_colourRows) {
-                // group selection button
-                lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.colours[e.GetX()].lowlight);
+            if(e.GetY()>=num_colourRows || e.GetX()==8  || e.GetY()==-1) {
+                // if it's not a colour selection key, release the playback
+               int oscX = e.GetX() + 2;
+				if (oscX == 10) oscX = 1; // shift the end circle buttons to the front
+				int oscY = e.GetY() + 1;
+			
+				osc.Send(new OscMessage($"/exec/{textBox_execPage.Text}/{oscX + oscY * 9}", 0));
+				lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.colours[0].lowlight);
             }
         }
 
         private void Padsys_Load(object sender , EventArgs e) {
-            ArtEngine.Start();
-           
+        
 
             generateButtons();
             // presuming we have already connected...
@@ -248,14 +248,82 @@ namespace Padsys {
   b = Clamp((int)(B * 255.0));
 }
 
-/// <summary>
-/// Clamp a value to 0-255
-/// </summary>
-int Clamp(int i)
-{
-  if (i < 0) return 0;
-  if (i > 255) return 255;
-  return i;
-}
-    }
+		/// <summary>
+		/// Clamp a value to 0-255
+		/// </summary>
+		int Clamp(int i)
+		{
+		  if (i < 0) return 0;
+		  if (i > 255) return 255;
+		  return i;
+		}
+
+		private void textBox_ip_Validating(object sender , System.ComponentModel.CancelEventArgs e) {
+			if(IsValidIP(textBox_ip.Text)) {
+				textBox_ip.BackColor = Color.White;
+			} else {
+				textBox_ip.BackColor = Color.LightCoral;
+			}
+		}
+
+		public bool IsValidIP(string addr)
+		{
+			// from https://stackoverflow.com/questions/10927523/text-box-only-allow-ip-address-in-windows-application
+			//create our match pattern
+			string pattern = @"^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$";
+			//create our Regular Expression object
+			Regex check = new Regex(pattern);
+			//boolean variable to hold the status
+			bool valid = false;
+			//check to make sure an ip address was provided
+			if (addr == "")
+			{
+				//no address provided so return false
+				valid = false;
+			}
+			else
+			{
+				//address provided so use the IsMatch Method
+				//of the Regular Expression object
+				valid = check.IsMatch(addr, 0);
+			}
+			//return the results
+			return valid;
+		}
+
+		private void textBox_port_Validating(object sender , System.ComponentModel.CancelEventArgs e) {
+			int n;
+			if(int.TryParse(textBox_port.Text, out n)) {
+				textBox_port.BackColor = Color.White;
+			} else {
+				textBox_port.BackColor = Color.LightCoral;
+			}
+		}
+
+		private void updateOSCAddress() {
+			osc = new OscSender(IPAddress.Parse(textBox_ip.Text), int.Parse(textBox_port.Text));
+			osc.Connect();
+		}
+
+		private void textBox_ip_Validated(object sender , EventArgs e) {
+			updateOSCAddress();
+		}
+
+		private void textBox_port_Validated(object sender , EventArgs e) {
+			updateOSCAddress();
+		}
+
+		private void textBox1_Validating(object sender , System.ComponentModel.CancelEventArgs e) {
+
+		}
+
+		private void textBox_execPage_Validating(object sender , System.ComponentModel.CancelEventArgs e) {
+			int n;
+			if(int.TryParse(textBox_execPage.Text, out n)) {
+				textBox_execPage.BackColor = Color.White;
+			} else {
+				textBox_execPage.BackColor = Color.LightCoral;
+			}
+		}
+	}
 }
