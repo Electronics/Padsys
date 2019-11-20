@@ -84,7 +84,7 @@ namespace Padsys {
 			if (oscX == 10) oscX = 1; // shift the end circle buttons to the front
 			int oscY = e.GetY() + 1;
 			
-			osc.Send(new OscMessage($"/exec/{textBox_execPage.Text}/{oscX + oscY * 9}", 1));
+			osc.Send(new OscMessage($"/exec/{textBox_execPage.Text}/{oscX + oscY * 10}", 1)); // updated to increments of 10
         }
 
         private void keyReleasedEvent(object sender, LaunchpadKeyEventArgs e) {
@@ -94,7 +94,7 @@ namespace Padsys {
 				if (oscX == 10) oscX = 1; // shift the end circle buttons to the front
 				int oscY = e.GetY() + 1;
 			
-				osc.Send(new OscMessage($"/exec/{textBox_execPage.Text}/{oscX + oscY * 9}", 0));
+				osc.Send(new OscMessage($"/exec/{textBox_execPage.Text}/{oscX + oscY * 10}", 0));
 				lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.colours[0].lowlight);
             }
         }
