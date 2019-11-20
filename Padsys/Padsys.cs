@@ -7,7 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-using static LaunchpadNET.Interface;
+using static LaunchpadNET.Interface; // https://github.com/Electronics/launchpad-dot-net/releases/tag/v1.0
 
 namespace Padsys {
     public partial class Padsys : Form {

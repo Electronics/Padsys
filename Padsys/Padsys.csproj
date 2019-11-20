@@ -33,13 +33,15 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="launchpad-dot-net">
+      <HintPath>.\launchpad-dot-net.dll</HintPath>
+    </Reference>
     <Reference Include="Midi, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\launchpad-dot-net-master\launchpad-dot-net\bin\Debug\Midi.dll</HintPath>
+      <HintPath>.\Midi.dll</HintPath>
     </Reference>
     <Reference Include="Rug.Osc, Version=1.2.5.17694, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Rug.Osc.1.2.5\lib\Rug.Osc.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -93,16 +95,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\eDMX\ArtNet\ArtNet.csproj">
-      <Project>{D059941C-C1CA-4A47-AA1D-B3AD9953AEB2}</Project>
-      <Name>ArtNet</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\launchpad-dot-net-master\launchpad-dot-net\launchpad-dot-net.csproj">
-      <Project>{2784c4af-3b96-471b-91b0-1a11c342d375}</Project>
-      <Name>launchpad-dot-net</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
