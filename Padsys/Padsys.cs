@@ -81,7 +81,8 @@ namespace Padsys {
 			}
 
 			int oscX = e.GetX() + 2;
-			if (oscX == 10) oscX = 1; // shift the end circle buttons to the front
+            if (oscX == 10) oscX = 1; // shift the end circle buttons to the front
+            else oscX++; // otherwise shift +1 to ignore the soft pallete
 			int oscY = e.GetY() + 1;
 			
 			osc.Send(new OscMessage($"/exec/{textBox_execPage.Text}/{oscX + oscY * 10}", 1)); // updated to increments of 10
@@ -92,7 +93,8 @@ namespace Padsys {
                 // if it's not a colour selection key, release the playback
                int oscX = e.GetX() + 2;
 				if (oscX == 10) oscX = 1; // shift the end circle buttons to the front
-				int oscY = e.GetY() + 1;
+                else oscX++; // otherwise shift +1 to ignore the soft pallete
+                int oscY = e.GetY() + 1;
 			
 				osc.Send(new OscMessage($"/exec/{textBox_execPage.Text}/{oscX + oscY * 10}", 0));
 				lInt.setLED(e.GetX() , e.GetY() , ColourExecRow.colours[0].lowlight);
